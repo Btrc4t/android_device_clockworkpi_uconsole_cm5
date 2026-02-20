@@ -1,0 +1,165 @@
+// Copyright (C) 2021 The Android Open Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//package {
+//    // See: http://go/android-license-faq
+//    // A large-scale-change added 'default_applicable_licenses' to import
+//    // all of the 'license_kinds' from "hardware_interfaces_license"
+//    // to get the below license kinds:
+//    //   SPDX-license-identifier-Apache-2.0
+//    default_applicable_licenses: ["hardware_interfaces_license"],
+//}
+
+// cc_defaults {
+//     name: "libhealth_aidl_charger_defaults",
+//     shared_libs: [
+//         // common
+//         "android.hardware.health-V4-ndk",
+//         "libbase",
+//         "libcutils",
+//         "liblog",
+//         "libutils",
+// 
+//         // charger UI only
+//         "libpng",
+//     ],
+// 
+//     static_libs: [
+//         // common
+//         "libbatterymonitor",
+//         "libhealthloop",
+// 
+//         // charger UI only
+//         "libhealthd_draw",
+//         "libhealthd_charger_ui",
+//         "libminui",
+//         "libsuspend",
+//     ]
+// }
+// 
+// // AIDL version of libhealth2impl.
+// // A helper library for health HAL implementation.
+// // HAL implementations can link to this library and extend the Health class.
+// cc_library_static {
+//     name: "libhealth_aidl_impl",
+//     defaults: [
+//         "libhealth_aidl_common_defaults",
+//         "libhealth_aidl_charger_defaults",
+//     ],
+//     vendor: true,
+//     recovery_available: false,
+//     export_include_dirs: ["include"],
+//     export_static_lib_headers: [
+//         "libbatterymonitor",
+//     ],
+//     srcs: [
+//         "ChargerUtils.cpp",
+//         "health-convert.cpp",
+//         "HalHealthLoop.cpp",
+//         "Health.cpp",
+//         "LinkedCallback.cpp",
+//     ]
+// }
+// 
+// // Users of libhealth_aidl_impl should use this defaults.
+// cc_defaults {
+//     name: "libhealth_aidl_impl_user",
+//     defaults: [
+//         "libhealth_aidl_common_defaults",
+//         "libhealth_aidl_charger_defaults",
+//     ],
+// }
+// 
+// // AIDL version of android.hardware.health@2.1-service.
+// // Default binder service of the health HAL.
+// cc_defaults {
+//     name: "android.hardware.health-service.rpi-defaults",
+//     relative_install_path: "hw",
+//     vintf_fragments: ["android.hardware.health-service.rpi.xml"],
+//     defaults: [
+//         "libhealth_aidl_impl_user",
+//     ],
+//     static_libs: [
+//         "libhealth_aidl_impl",
+//     ],
+//     srcs: ["main.cpp"],
+// }
+
+cc_binary {
+    name: "android.hardware.health-service.uconsole",
+    relative_install_path: "hw",
+    vendor: true,
+    overrides: [
+        "charger",
+        "android.hardware.health-service.rpi"
+    ],
+    defaults: [
+        "libhealth_aidl_impl_user",
+    ],
+    srcs: [
+        "ChargerUtils.cpp",
+        "health-convert.cpp",
+        "HalHealthLoop.cpp",
+        "Health.cpp",
+        "LinkedCallback.cpp",
+        "main.cpp",
+    ],
+    static_libs: [
+        "libbatterymonitor",
+        "libhealth_aidl_impl",
+        "libhealth_aidl_impl_user",
+        "libhealthloop",
+    ],
+    shared_libs: [
+        "android.hardware.health-V4-ndk",
+        "libbase",
+        "libbinder_ndk",
+        "libcutils",
+        "liblog",
+        "libutils",
+    ],
+    installable: false,
+}
+
+prebuilt_etc {
+    name: "android.hardware.health-service.uconsole.rc",
+    src: "android.hardware.health-service.uconsole.rc",
+    overrides: ["android.hardware.health-service.rpi.rc"],
+    installable: false,
+}
+
+prebuilt_etc {
+    name: "android.hardware.health-service.uconsole.xml",
+    src: "android.hardware.health-service.uconsole.xml",
+    overrides: ["android.hardware.health-service.rpi.xml"],
+    sub_dir: "vintf",
+    installable: false,
+}
+
+apex {
+    name: "com.android.hardware.health.uconsole",
+    overrides: ["com.android.hardware.health.rpi5"],
+    manifest: "apex_manifest.json",
+    file_contexts: "apex_file_contexts",
+    key: "com.android.hardware.key",
+    certificate: ":com.android.hardware.certificate",
+    updatable: false,
+    vendor: true,
+
+    binaries: ["android.hardware.health-service.uconsole"],
+    prebuilts: [
+        "android.hardware.health-service.uconsole.rc",
+        "android.hardware.health-service.uconsole.xml",
+    ],
+}
